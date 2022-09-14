@@ -81,7 +81,7 @@ func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 // }
 
 // To get the list of Students
-func GetStudentsEndpoint(response http.ResponseWriter, request *http.Request) {
+func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
 	var students []Student
 	collection := client.Database("student_db").Collection("student_data")
@@ -115,7 +115,7 @@ func main() {
 	fmt.Println("Clinet ", client)
 	router := mux.NewRouter()
 	router.HandleFunc("/student", CreateStudentEndpoint).Methods("POST")
-	router.HandleFunc("/students", GetStudentsEndpoint).Methods("GET")
+	router.HandleFunc("/students", GetStudentsListEndpoint).Methods("GET")
 	router.HandleFunc("/student/{id}", GetStudentEndpoint).Methods("GET")
 	// To delete the student record
 	// router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE")
