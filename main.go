@@ -15,6 +15,7 @@ import (
 )
 
 var client *mongo.Client
+var clientOptions *options.ClientOptions
 
 type Student struct {
 	ID primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
@@ -25,13 +26,11 @@ type Student struct {
 
 // To post the student details
 func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) {
-	// fmt.Println("########")
 	response.Header().Set("content-type", "application/json")
 	var student Student
+	client = MongoDBConnection(clientOptions)
 	json.NewDecoder(request.Body).Decode(&student)
-	fmt.Println(student)
 	collection := client.Database("student_db").Collection("student_data")
-	fmt.Println("collection", collection)
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	result, err := collection.InsertOne(ctx, student)
 	if err != nil {
@@ -44,6 +43,7 @@ func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 
 // To fetch the student data
 func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
+	client = MongoDBConnection(clientOptions)
 	response.Header().Set("content-type", "application/json")
 	params := mux.Vars(request)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
@@ -59,31 +59,76 @@ func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(response).Encode(student)
 }
 
-// func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) {
-// 	response.Header().Set("content-type", "application/json")
-// 	params := mux.Vars(request)
-// 	id, _ := primitive.ObjectIDFromHex(params["id"])
-// 	// var student Student
-// 	collection := client.Database("student_db").Collection("student_data")
-// 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-// 	res, err := collection.DeleteOne(ctx, bson.M{"_id": id})
-// 	if err != nil {
-// 		response.WriteHeader(http.StatusInternalServerError)
-// 		response.Write([]byte(`{ "message": "` + err.Error() + `" }`))
-// 		return
-// 	}
-// 	// json.NewEncoder(response).Encode(student)
-// 	if res.DeletedCount == 0 {
-// 		fmt.Println("DeleteOne document not found", res)
-// 	} else {
-// 		fmt.Println("DeleteOne result:", res)
-// 	}
-// }
+// To update the student details
+func UpdateStudentEndpoint(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("content-type", "application/json")
+	var student Student
+	params := mux.Vars(request)
+	fmt.Println(params)
+	var data = make(map[string]string)
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+	client = MongoDBConnection(clientOptions)
+	json.NewDecoder(request.Body).Decode(&student)
+	coll := client.Database("student_db").Collection("student_data")
+	filter := bson.D{{"_id", id}}
+	var update primitive.D
+	if len(student.Lastname) == 0 {
+		update = bson.D{{"$set", bson.D{{"firstname", student.Firstname}}}}
+	}
+	if len(student.Firstname) == 0 {
+		update = bson.D{{"$set", bson.D{{"lastname", student.Lastname}}}}
+	}
+
+	result, err := coll.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+		return
+	}
+	if result.ModifiedCount == 0 {
+		data["status"] = "SUCCESS"
+		data["message"] = "No recrods found"
+	} else {
+		data["status"] = "SUCCESS"
+		data["message"] = "Updated successfully"
+	}
+	json.NewEncoder(response).Encode(data)
+}
+
+func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("This is Delete API")
+	response.Header().Set("content-type", "application/json")
+	params := mux.Vars(request)
+	var data = make(map[string]string)
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+	// Database connection
+	client = MongoDBConnection(clientOptions)
+	// var student Student
+	collection := client.Database("student_db").Collection("student_data")
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	res, err := collection.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+		return
+	}
+
+	if res.DeletedCount == 0 {
+		data["status"] = "SUCCESS"
+		data["message"] = "No recrods found"
+	} else {
+		data["status"] = "SUCCESS"
+		data["message"] = "Deleted successfully"
+	}
+	json.NewEncoder(response).Encode(data)
+}
 
 // To get the list of Students
 func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
 	var students []Student
+	// Database connection
+	client = MongoDBConnection(clientOptions)
 	collection := client.Database("student_db").Collection("student_data")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	cursor, err := collection.Find(ctx, bson.M{})
@@ -109,15 +154,18 @@ func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request
 // Main function
 func main() {
 	fmt.Println("Starting the application...")
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	clientOptions := options.Client().ApplyURI("mongodb+srv://mongo642:Altrancg123@cluster0.3ptkea0.mongodb.net/test?retryWrites=true&w=majority")
-	client, _ = mongo.Connect(ctx, clientOptions)
-	fmt.Println("Clinet ", client)
+	clientOptions = options.Client().ApplyURI("mongodb+srv://mongo642:Altrancg123@cluster0.3ptkea0.mongodb.net/test?retryWrites=true&w=majority")
+	// fmt.Println("Clinet ", client)
 	router := mux.NewRouter()
+	// To insert the student details
 	router.HandleFunc("/student", CreateStudentEndpoint).Methods("POST")
+	// To get the students list
 	router.HandleFunc("/students", GetStudentsListEndpoint).Methods("GET")
+	// To update the students details
+	router.HandleFunc("/student/update/{id}", UpdateStudentEndpoint).Methods("PUT")
+	// To fetch the student details
 	router.HandleFunc("/student/{id}", GetStudentEndpoint).Methods("GET")
 	// To delete the student record
-	// router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE")
+	router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE")
 	http.ListenAndServe(":12345", router)
 }
