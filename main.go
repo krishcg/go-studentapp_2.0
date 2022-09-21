@@ -27,6 +27,7 @@ type Student struct {
 // To post the student details
 func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	var student Student
 	client = MongoDBConnection(clientOptions)
 	json.NewDecoder(request.Body).Decode(&student)
@@ -45,6 +46,7 @@ func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	client = MongoDBConnection(clientOptions)
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(request)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 	var student Student
@@ -62,6 +64,7 @@ func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 // To update the student details
 func UpdateStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	var student Student
 	params := mux.Vars(request)
 	fmt.Println(params)
@@ -98,6 +101,7 @@ func UpdateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	fmt.Println("This is Delete API")
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(request)
 	var data = make(map[string]string)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
@@ -126,6 +130,7 @@ func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 // To get the list of Students
 func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	var students []Student
 	// Database connection
 	client = MongoDBConnection(clientOptions)
