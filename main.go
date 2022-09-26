@@ -26,8 +26,10 @@ type Student struct {
 
 // To post the student details
 func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("This is Insert API")
 	response.Header().Set("content-type", "application/json")
-	response.Header().Set("Access-Control-Allow-Origin", "*")
+	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	response.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 	var student Student
 	client = MongoDBConnection(clientOptions)
 	json.NewDecoder(request.Body).Decode(&student)
@@ -63,23 +65,28 @@ func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 
 // To update the student details
 func UpdateStudentEndpoint(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("This is Update API")
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var student Student
-	params := mux.Vars(request)
-	fmt.Println(params)
 	var data = make(map[string]string)
-	id, _ := primitive.ObjectIDFromHex(params["id"])
 	client = MongoDBConnection(clientOptions)
 	json.NewDecoder(request.Body).Decode(&student)
 	coll := client.Database("student_db").Collection("student_data")
-	filter := bson.D{{"_id", id}}
+	filter := bson.D{{"_id", student.ID}}
 	var update primitive.D
-	if len(student.Lastname) == 0 {
+
+	if len(student.Firstname) != 0 && len(student.Lastname) != 0 {
+		update = bson.D{{"$set", bson.D{{"firstname", student.Firstname}, {"lastname", student.Lastname}}}}
+	} else if len(student.Lastname) == 0 {
 		update = bson.D{{"$set", bson.D{{"firstname", student.Firstname}}}}
-	}
-	if len(student.Firstname) == 0 {
+	} else if len(student.Firstname) == 0 {
 		update = bson.D{{"$set", bson.D{{"lastname", student.Lastname}}}}
+	} else {
+		update = nil
 	}
 
 	result, err := coll.UpdateOne(context.TODO(), filter, update)
@@ -101,7 +108,9 @@ func UpdateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	fmt.Println("This is Delete API")
 	response.Header().Set("content-type", "application/json")
-	response.Header().Set("Access-Control-Allow-Origin", "*")
+	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	response.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	response.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 	params := mux.Vars(request)
 	var data = make(map[string]string)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
@@ -130,7 +139,8 @@ func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 // To get the list of Students
 func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
-	response.Header().Set("Access-Control-Allow-Origin", "*")
+	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	response.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 	var students []Student
 	// Database connection
 	client = MongoDBConnection(clientOptions)
@@ -163,14 +173,14 @@ func main() {
 	// fmt.Println("Clinet ", client)
 	router := mux.NewRouter()
 	// To insert the student details
-	router.HandleFunc("/student", CreateStudentEndpoint).Methods("POST")
+	router.HandleFunc("/student", CreateStudentEndpoint).Methods("POST", "OPTIONS")
 	// To get the students list
-	router.HandleFunc("/students", GetStudentsListEndpoint).Methods("GET")
+	router.HandleFunc("/students", GetStudentsListEndpoint).Methods("GET", "OPTIONS")
 	// To update the students details
-	router.HandleFunc("/student/update/{id}", UpdateStudentEndpoint).Methods("PUT")
+	router.HandleFunc("/student/update", UpdateStudentEndpoint).Methods("PUT", "OPTIONS")
 	// To fetch the student details
-	router.HandleFunc("/student/{id}", GetStudentEndpoint).Methods("GET")
+	router.HandleFunc("/student/{id}", GetStudentEndpoint).Methods("GET", "OPTIONS")
 	// To delete the student record
-	router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE")
+	router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE", "OPTIONS")
 	http.ListenAndServe(":12345", router)
 }
