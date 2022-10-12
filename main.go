@@ -29,12 +29,14 @@ func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 	fmt.Println("This is Insert API")
 	response.Header().Set("content-type", "application/json")
 	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	response.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	// response.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	var student Student
 	client = MongoDBConnection(clientOptions)
 	json.NewDecoder(request.Body).Decode(&student)
 	collection := client.Database("student_db").Collection("student_data")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	fmt.Println("Insert data: \n", student)
 	result, err := collection.InsertOne(ctx, student)
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
@@ -48,6 +50,7 @@ func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 func GetStudentEndpoint(response http.ResponseWriter, request *http.Request) {
 	client = MongoDBConnection(clientOptions)
 	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(request)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
@@ -110,7 +113,7 @@ func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 	response.Header().Set("content-type", "application/json")
 	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	response.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	response.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(request)
 	var data = make(map[string]string)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
@@ -140,7 +143,7 @@ func DeleteStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("content-type", "application/json")
 	response.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	response.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	var students []Student
 	// Database connection
 	client = MongoDBConnection(clientOptions)
@@ -183,4 +186,5 @@ func main() {
 	// To delete the student record
 	router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE", "OPTIONS")
 	http.ListenAndServe(":12345", router)
+
 }
