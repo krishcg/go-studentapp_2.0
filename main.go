@@ -36,14 +36,20 @@ func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 	json.NewDecoder(request.Body).Decode(&student)
 	collection := client.Database("student_db").Collection("student_data")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	fmt.Println("Insert data: \n", student)
-	result, err := collection.InsertOne(ctx, student)
-	if err != nil {
-		response.WriteHeader(http.StatusInternalServerError)
-		// response.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+	// fmt.Println("Insert data: \n", student)
+
+	if student.Firstname == "" || student.Lastname == "" {
+		// To eleminate empty record insertion
+	} else {
+		result, err := collection.InsertOne(ctx, student)
+		if err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			response.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+			return
+		}
+		json.NewEncoder(response).Encode(result)
 		return
 	}
-	json.NewEncoder(response).Encode(result)
 }
 
 // To fetch the student data
