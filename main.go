@@ -34,7 +34,7 @@ func CreateStudentEndpoint(response http.ResponseWriter, request *http.Request) 
 	var student Student
 	client = MongoDBConnection(clientOptions)
 	json.NewDecoder(request.Body).Decode(&student)
-	collection := client.Database("student_db").Collection("student_data")
+	collection := client.Database("student_db_qa").Collection("student_data")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	// fmt.Println("Insert data: \n", student)
 
