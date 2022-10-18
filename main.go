@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -175,6 +178,27 @@ func GetStudentsListEndpoint(response http.ResponseWriter, request *http.Request
 	json.NewEncoder(response).Encode(students)
 }
 
+func listenOnSecurePort(router *mux.Router) {
+
+	log.Println("Server starting. Listening on 12345")
+
+	// start server on https port
+	server := http.Server{
+		Addr:    "12345",
+		Handler: router,
+		TLSConfig: &tls.Config{
+			NextProtos: []string{"h2", "http/1.1"},
+		},
+	}
+
+	certFilePath, _ := filepath.Abs("./go-server.crt")
+	keyFilePath, _ := filepath.Abs("./go-server.key")
+	err := server.ListenAndServeTLS(certFilePath, keyFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // Main function
 func main() {
 	fmt.Println("Starting the application...")
@@ -191,6 +215,7 @@ func main() {
 	router.HandleFunc("/student/{id}", GetStudentEndpoint).Methods("GET", "OPTIONS")
 	// To delete the student record
 	router.HandleFunc("/student/delete/{id}", DeleteStudentEndpoint).Methods("DELETE", "OPTIONS")
-	http.ListenAndServe(":12345", router)
+	// http.ListenAndServe(":12345", router)
+	listenOnSecurePort(router)
 
 }
